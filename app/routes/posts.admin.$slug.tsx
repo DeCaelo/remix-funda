@@ -15,7 +15,12 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Textarea } from "~/components/ui/textarea";
-import { createPost, getPost } from "~/models/post.server";
+import {
+  createPost,
+  deletePost,
+  getPost,
+  updatePost,
+} from "~/models/post.server";
 
 export async function loader({ params }: LoaderFunctionArgs) {
   invariant(params.slug, "slug not found");
@@ -28,29 +33,48 @@ export async function loader({ params }: LoaderFunctionArgs) {
   return json({ post });
 }
 
-export async function action({ request }: ActionFunctionArgs) {
+export async function action({ request, params }: ActionFunctionArgs) {
   const formData = await request.formData();
+  const intent = formData.get("intent");
+
+  invariant(typeof params.slug === "string", "slug not provided");
+  if (intent === "delete") {
+    await deletePost(params.slug);
+    return redirect("/posts/admin");
+  }
+
   const title = formData.get("title");
   const slug = formData.get("slug");
   const markdown = formData.get("markdown");
 
-  const errors = {
-    title: title ? null : "Title is required",
-    slug: slug ? null : "Slug is required",
-    markdown: markdown ? null : "Markdown is required",
-  };
+  const errors: {
+    title?: string | null;
+    slug?: string | null;
+    markdown?: string | null;
+  } = {};
 
+  errors.title = title ? null : "Title is required";
+  errors.markdown = markdown ? null : "Markdown is required";
+
+  if (intent !== "update") {
+    errors.slug = slug ? null : "Slug is required";
+  }
   const hasErrors = Object.values(errors).some(Boolean);
 
   if (hasErrors) {
     return json(errors);
   }
 
-  invariant(typeof title === "string", "title must be a string");
-  invariant(typeof slug === "string", "slug must be a string");
-  invariant(typeof markdown === "string", "markdown must be a string");
-
-  await createPost({ title, slug, markdown });
+  if (params.slug === "new") {
+    invariant(typeof title === "string", "title must be a string");
+    invariant(typeof slug === "string", "slug must be a string");
+    invariant(typeof markdown === "string", "markdown must be a string");
+    await createPost({ title, slug, markdown });
+  } else {
+    invariant(typeof title === "string", "title must be a string");
+    invariant(typeof markdown === "string", "markdown must be a string");
+    await updatePost({ title, slug: params.slug, markdown });
+  }
 
   return redirect("/posts/admin");
 }
@@ -61,8 +85,13 @@ const textErrors = "text-red-600 font-bold";
 export default function NewPostRoute() {
   const data = useLoaderData<typeof loader>();
   const errors = useActionData<typeof action>();
+
   const navigation = useNavigation();
-  const isCreating = navigation.state === "loading";
+  const isCreating = navigation.formData?.get("intent") === "create";
+  const isUpdating = navigation.formData?.get("intent") === "update";
+  const isDeleting = navigation.formData?.get("intent") === "delete";
+  const isNewPost = !data.post;
+
   return (
     <Form method="post">
       <div className={inputGrid}>
@@ -105,9 +134,26 @@ export default function NewPostRoute() {
         ) : null}
       </div>
 
-      <div className="text-right">
-        <Button type="submit" disabled={isCreating}>
-          {isCreating ? "Creating..." : "Create Post"}
+      <div className="flex justify-end gap-4">
+        {isNewPost ? null : (
+          <Button
+            type="submit"
+            name="intent"
+            value="delete"
+            variant={"destructive"}
+            disabled={isDeleting}
+          >
+            {isDeleting ? "Deleting..." : "Delete Post"}
+          </Button>
+        )}
+        <Button
+          type="submit"
+          name="intent"
+          value={isNewPost ? "create" : "update"}
+          disabled={isCreating || isUpdating}
+        >
+          {isNewPost ? (isCreating ? "Creating..." : "Create") : null}
+          {isNewPost ? null : isUpdating ? "Updating..." : "Update"}
         </Button>
       </div>
     </Form>

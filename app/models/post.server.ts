@@ -17,3 +17,13 @@ export async function createPost({
 }: Pick<Post, "title" | "slug" | "markdown">) {
   return prisma.post.create({ data: { title, slug, markdown } });
 }
+
+export async function deletePost(slug: string) {
+  return prisma.post.delete({ where: { slug } });
+}
+
+export async function updatePost(
+  post: Pick<Post, "slug" | "title" | "markdown">,
+) {
+  return prisma.post.update({ data: post, where: { slug: post.slug } });
+}
