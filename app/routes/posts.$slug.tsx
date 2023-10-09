@@ -1,9 +1,10 @@
 import { LoaderFunctionArgs, json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { marked } from "marked";
+import { ErrorFallback } from "~/components/ErrorFallback";
 import { getPost } from "~/models/post.server";
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ params }: LoaderFunctionArgs) {
   if (!params.slug) {
     throw new Error("missing slug");
   }
@@ -24,4 +25,10 @@ export default function PostRoute() {
       <div dangerouslySetInnerHTML={{ __html: html }} />
     </main>
   );
+}
+
+export function ErrorBoundary({ error }: { error: Error }) {
+  console.error(error);
+
+  return <ErrorFallback>Something went wrong!</ErrorFallback>;
 }

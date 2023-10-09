@@ -11,6 +11,7 @@ import {
   useNavigation,
 } from "@remix-run/react";
 import invariant from "tiny-invariant";
+import { ErrorFallback } from "~/components/ErrorFallback";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -158,4 +159,10 @@ export default function NewPostRoute() {
       </div>
     </Form>
   );
+}
+
+export function ErrorBoundary({ error }: { error: Error }) {
+  console.error(error);
+
+  return <ErrorFallback>Something went wrong loading this post!</ErrorFallback>;
 }
