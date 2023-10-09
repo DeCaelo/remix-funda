@@ -1,5 +1,5 @@
 import { ActionFunctionArgs, json, redirect } from "@remix-run/node";
-import { Form, useActionData } from "@remix-run/react";
+import { Form, useActionData, useNavigation } from "@remix-run/react";
 import invariant from "tiny-invariant";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -39,6 +39,8 @@ const textErrors = "text-red-600 font-bold";
 
 export default function NewPostRoute() {
   const actionData = useActionData<typeof action>();
+  const navigation = useNavigation();
+  const isCreating = navigation.state === "loading";
   return (
     <Form method="post">
       <div className={inputGrid}>
@@ -71,7 +73,9 @@ export default function NewPostRoute() {
       </div>
 
       <div className="text-right">
-        <Button type="submit">Create Post</Button>
+        <Button type="submit">
+          {isCreating ? "Creating..." : "Create Post"}
+        </Button>
       </div>
     </Form>
   );
