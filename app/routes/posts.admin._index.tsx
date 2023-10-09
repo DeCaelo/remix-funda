@@ -6,6 +6,7 @@ export default function AdminIndexRoute() {
       <Link to="new" className="text-blue-600 underline">
         Create a New Post
       </Link>
+      <p>{ENV.ADMIN_EMAIL}</p>
     </p>
   );
 }
