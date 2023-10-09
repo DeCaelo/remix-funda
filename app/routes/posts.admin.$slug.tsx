@@ -1,11 +1,32 @@
-import { ActionFunctionArgs, json, redirect } from "@remix-run/node";
-import { Form, useActionData, useNavigation } from "@remix-run/react";
+import {
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+  json,
+  redirect,
+} from "@remix-run/node";
+import {
+  Form,
+  useActionData,
+  useLoaderData,
+  useNavigation,
+} from "@remix-run/react";
 import invariant from "tiny-invariant";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Textarea } from "~/components/ui/textarea";
-import { createPost } from "~/models/post.server";
+import { createPost, getPost } from "~/models/post.server";
+
+export async function loader({ params }: LoaderFunctionArgs) {
+  invariant(params.slug, "slug not found");
+  if (params.slug === "new") {
+    return json({ post: null });
+  }
+
+  const post = await getPost(params.slug);
+  invariant(post, `Post not found: ${params.slug}`);
+  return json({ post });
+}
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
@@ -22,7 +43,7 @@ export async function action({ request }: ActionFunctionArgs) {
   const hasErrors = Object.values(errors).some(Boolean);
 
   if (hasErrors) {
-    return json({ errors });
+    return json(errors);
   }
 
   invariant(typeof title === "string", "title must be a string");
@@ -38,25 +59,35 @@ const inputGrid = "grid w-full gap-1.5 mb-3";
 const textErrors = "text-red-600 font-bold";
 
 export default function NewPostRoute() {
-  const actionData = useActionData<typeof action>();
+  const data = useLoaderData<typeof loader>();
+  const errors = useActionData<typeof action>();
   const navigation = useNavigation();
   const isCreating = navigation.state === "loading";
   return (
     <Form method="post">
       <div className={inputGrid}>
         <Label htmlFor="title">Post Title</Label>
-        <Input type="text" name="title" placeholder="Title" />
-        {actionData?.errors?.title ? (
-          <em className={textErrors}>{actionData.errors.title}</em>
-        ) : null}
+        <Input
+          type="text"
+          name="title"
+          placeholder="Title"
+          key={data?.post?.slug ?? "new"}
+          defaultValue={data?.post?.title}
+        />
+        {errors?.title ? <em className={textErrors}>{errors.title}</em> : null}
       </div>
 
       <div className={inputGrid}>
         <Label htmlFor="slug">Post Slug</Label>
-        <Input type="text" name="slug" placeholder="Slug" />
-        {actionData?.errors?.slug ? (
-          <em className={textErrors}>{actionData.errors.slug}</em>
-        ) : null}
+        <Input
+          type="text"
+          name="slug"
+          placeholder="Slug"
+          key={data?.post?.slug ?? "new"}
+          defaultValue={data?.post?.slug}
+          disabled={Boolean(data.post)}
+        />
+        {errors?.slug ? <em className={textErrors}>{errors.slug}</em> : null}
       </div>
 
       <div className={inputGrid}>
@@ -66,14 +97,16 @@ export default function NewPostRoute() {
           rows={8}
           name="markdown"
           className="font-mono"
+          key={data?.post?.slug ?? "new"}
+          defaultValue={data?.post?.markdown}
         />
-        {actionData?.errors?.markdown ? (
-          <em className={textErrors}>{actionData.errors.markdown}</em>
+        {errors?.markdown ? (
+          <em className={textErrors}>{errors.markdown}</em>
         ) : null}
       </div>
 
       <div className="text-right">
-        <Button type="submit">
+        <Button type="submit" disabled={isCreating}>
           {isCreating ? "Creating..." : "Create Post"}
         </Button>
       </div>
