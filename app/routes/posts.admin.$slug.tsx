@@ -25,8 +25,11 @@ import {
   getPost,
   updatePost,
 } from "~/models/post.server";
+import { requireAdminUser } from "~/session.server";
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ request, params }: LoaderFunctionArgs) {
+  await requireAdminUser(request);
+
   invariant(params.slug, "slug not found");
   if (params.slug === "new") {
     return json({ post: null });
@@ -41,6 +44,8 @@ export async function loader({ params }: LoaderFunctionArgs) {
 }
 
 export async function action({ request, params }: ActionFunctionArgs) {
+  await requireAdminUser(request);
+
   const formData = await request.formData();
   const intent = formData.get("intent");
 

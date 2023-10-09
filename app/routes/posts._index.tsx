@@ -1,6 +1,7 @@
 import { json } from "@remix-run/node";
 import { Link, useLoaderData } from "@remix-run/react";
 import { getPosts } from "~/models/post.server";
+import { useOptionalAdminUser } from "~/utils";
 
 export async function loader() {
   const posts = await getPosts();
@@ -9,12 +10,15 @@ export async function loader() {
 
 export default function PostsIndexPage() {
   const { posts } = useLoaderData<typeof loader>();
+  const adminUser = useOptionalAdminUser();
   return (
     <main>
       <h1>Posts</h1>
-      <Link className="text-red-600 underline" to="admin">
-        Admin
-      </Link>
+      {adminUser ? (
+        <Link className="text-red-600 underline" to="admin">
+          Admin
+        </Link>
+      ) : null}
       <ul>
         {posts.map((post) => (
           <li key={post.slug}>
