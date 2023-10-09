@@ -1,5 +1,10 @@
 import { LoaderFunctionArgs, json } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
+import {
+  isRouteErrorResponse,
+  useLoaderData,
+  useParams,
+  useRouteError,
+} from "@remix-run/react";
 import { marked } from "marked";
 import { ErrorFallback } from "~/components/ErrorFallback";
 import { getPost } from "~/models/post.server";
@@ -27,8 +32,19 @@ export default function PostRoute() {
   );
 }
 
-export function ErrorBoundary({ error }: { error: Error }) {
-  console.error(error);
+export function ErrorBoundary() {
+  const error = useRouteError();
+  const params = useParams();
 
-  return <ErrorFallback>Something went wrong!</ErrorFallback>;
+  if (isRouteErrorResponse(error)) {
+    if (error.data.type === "CustomError") {
+      return (
+        <ErrorFallback>
+          No post found with the slug: '{params.slug}'
+        </ErrorFallback>
+      );
+    }
+  }
+
+  return <ErrorFallback>Something went wrong loading this post!</ErrorFallback>;
 }

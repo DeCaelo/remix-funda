@@ -6,9 +6,12 @@ import {
 } from "@remix-run/node";
 import {
   Form,
+  isRouteErrorResponse,
   useActionData,
   useLoaderData,
   useNavigation,
+  useParams,
+  useRouteError,
 } from "@remix-run/react";
 import invariant from "tiny-invariant";
 import { ErrorFallback } from "~/components/ErrorFallback";
@@ -30,7 +33,10 @@ export async function loader({ params }: LoaderFunctionArgs) {
   }
 
   const post = await getPost(params.slug);
-  invariant(post, `Post not found: ${params.slug}`);
+  if (!post) {
+    throw json({ type: "CustomError", message: "not found" }, { status: 404 });
+  }
+
   return json({ post });
 }
 
@@ -161,8 +167,46 @@ export default function NewPostRoute() {
   );
 }
 
-export function ErrorBoundary({ error }: { error: Error }) {
-  console.error(error);
+export function ErrorBoundary() {
+  const error = useRouteError();
+  const params = useParams();
+
+  if (isRouteErrorResponse(error)) {
+    if (error.data.type === "CustomError") {
+      return (
+        <ErrorFallback>
+          No post found with the slug: '{params.slug}'
+        </ErrorFallback>
+      );
+    }
+  }
 
   return <ErrorFallback>Something went wrong loading this post!</ErrorFallback>;
 }
+
+// https://github.com/remix-run/remix/pull/7343#issuecomment-1708651785
+// export function loader() {
+//   if (whatever) {
+//     throw json({
+//       type: 'CustomError',
+//       message: 'something',
+//       code: 123
+//     }, {
+//       status: 500,
+//       statusText: "Unexpected Server Error"
+//     });
+//   }
+//   ...
+// }
+
+// export function ErrorBoundary() {
+//   let error = useRouteError();
+//   if (isRouteErrorResponse(error)) {
+//     if (error.data.type === "CustomError") {
+//       let customError = new CustomError(error.data.message, error.data.code);
+//       return <CustomErrorUI error={customError} />
+//     }
+//     return <p>{error.status} {error.statusText}</p>;
+//   }
+//   return <p>{error.message || 'Unknown Error'}</p>
+// }
